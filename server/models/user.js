@@ -56,6 +56,27 @@ UserSchema.methods.generateAuthToken = function () {
   });
 };
 
+// model method: statics es como method, pero para model methos, son globales al modelo
+UserSchema.statics.findByToken = function (token) {
+  var User = this; // model as this binding
+  var decoded;
+
+  // try catch porque el jwt.verify puede lanzar errores por umltiples motivos
+  try {
+    decoded = jwt.verify(token, 'abc123');
+  } catch (e) {
+    return Promise.reject();
+  };
+
+  // succesful decode
+  return User.findOne({
+    _id: decoded._id,
+    'tokens.token': token,
+    'tokens.access': 'auth'
+  });
+
+};
+
 var User = mongoose.model('User', UserSchema);
 
 module.exports = {User};
