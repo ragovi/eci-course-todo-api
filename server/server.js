@@ -33,14 +33,7 @@ app.get('/users/me', authenticate, (req, res) =>{
   res.send(req.user);
 });
 
-app.get('/todos', (req, res) => {
-  Todo.find().then((todos) => {
-    // res.send(todos);
-    res.send({todos});
-  }, (e) => {
-    res.status(400).send(e);
-  });
-});
+
 
 // GET /todos/123245
  // id disponible en el objeto request
@@ -123,6 +116,35 @@ app.patch('/todos/:id', (req, res) => {
       // me encadeno a la promise devuelta en user model
       res.header('x-auth', token).send(user);
     }).catch((e) => {
+      res.status(400).send(e);
+    });
+  });
+
+  // POST /users/login {email, password}
+  // coger el email y password del body
+  // comprobar el password, recuerda que lo tenemos hasheado en DDBB
+  // send 200 with email and password
+  app.post('/users/login', (req, res) => {
+    var body = _.pick(req.body, ['email', 'password']); // siempre es una buena practica
+    var {email, password} = body;
+
+    User.findByCredentials(email, password).then((user) => {
+      // res.send(user);
+      // return para mantener la cadena de promise viva, asi que si se produce un error ira al catch
+      return user.generateAuthToken().then((token) => {
+        res.header('x-auth', token).send(user);
+      });
+    }).catch((e) => {
+      res.status(400).send();
+    });
+  });
+
+
+  app.get('/todos', (req, res) => {
+    Todo.find().then((todos) => {
+      // res.send(todos);
+      res.send({todos});
+    }, (e) => {
       res.status(400).send(e);
     });
   });

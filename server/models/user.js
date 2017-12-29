@@ -75,8 +75,40 @@ UserSchema.statics.findByToken = function (token) {
     'tokens.token': token,
     'tokens.access': 'auth'
   });
-
 };
+
+UserSchema.statics.findByCredentials = function (email, password) {
+  var User = this;
+
+  // devolvemos con un return para poder engarcharnos en server, tal y como hemos defindo
+  return User.findOne({email}).then((user) =>{
+    if (!user) {
+      // esperamos siempre una promise, asi que devolvemos reject, lo que disparara el catch
+      // en serverjs
+      console.log('no user found');
+      return Promise.reject();
+    }
+
+    // tenemos que comparar el hash devuelto, por lo que tenemos que
+    // llamar a bcrypt
+    // bcrypt solo funciona con callbacks, pero como queremos trabajar con promises
+    // devuelvo una promise como wrapper
+    return new Promise((resolve, reject) => {
+      // use bcrypt cmpare password and user.password
+      // si no coinciden reject, so coinciden devuelvo el usuario con la promise resolved
+      bcrypt.compare(password, user.password, (err, res) => {
+        if (res) {
+          resolve(user);
+        } else {
+          console.log('Bad password');
+          reject();
+        }
+      });
+    });
+  });
+};
+
+
 
 UserSchema.pre('save', function (next) {
   var user = this;
@@ -92,6 +124,7 @@ UserSchema.pre('save', function (next) {
     next();
   }
 });
+
 
 var User = mongoose.model('User', UserSchema);
 
