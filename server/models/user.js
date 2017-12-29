@@ -57,6 +57,21 @@ UserSchema.methods.generateAuthToken = function () {
   });
 };
 
+UserSchema.methods.removeToken = function (token) {
+  // vamos a usar $pull operator en mogo, que permite borrar elementos de un array
+  var user = this;
+
+  // return para encadenarnos a la promise
+  return user.update({
+    $pull: {
+      tokens: {
+        // token: token
+        token
+      }
+    }
+  });
+};
+
 // model method: statics es como method, pero para model methos, son globales al modelo
 UserSchema.statics.findByToken = function (token) {
   var User = this; // model as this binding

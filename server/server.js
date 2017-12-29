@@ -149,6 +149,18 @@ app.patch('/todos/:id', (req, res) => {
     });
   });
 
+// la ruta es privada, requiere que estes autenticado
+// y en el middleware ponemos la token en la request, recuerda
+app.delete('/users/me/token', authenticate, (req, res) => {
+  // vamos a llamar a un instance methos del modelo que tenemos que crear
+  // el uso será el siguiente
+  req.user.removeToken(req.token).then(() => {
+    res.status(200).send();
+  }, () => {
+    res.status(400).send();
+  })
+});
+
 
 app.listen(port, () => {
   console.log(`Started on port ${port}`);
