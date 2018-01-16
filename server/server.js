@@ -63,23 +63,25 @@ app.get('/todos/:id', authenticate, (req, res) => {
   });
 });
 
-app.delete('/todos/:id', authenticate, (req, res) => {
-  var id = req.params.id;
+app.delete('/todos/:id', authenticate, async (req, res) => {
+  const id = req.params.id;
   if (!ObjectID.isValid(id)) {
     return res.status(404).send();
   }
 
-  Todo.findOneAndRemove({
-    _id: id,
-    _creator: req.user._id
-  }).then((todo) => {
+  try {
+    const todo = await Todo.findOneAndRemove({
+      _id: id,
+      _creator: req.user._id
+    });
+
     if (!todo) {
-        return res.status(404).send();
+      return res.status(404).send();
     }
     res.send({todo});
-  }).catch((e) => {
+  } catch (e) {
     res.status(400).send();
-  });
+  }
 
 });
 
@@ -102,7 +104,7 @@ app.patch('/todos/:id', authenticate, (req, res) => {
 
   Todo.findOneAndUpdate({
     _id: id,
-    _creator: req.user._id    
+    _creator: req.user._id
   }, {$set: body}, {new: true}).then((todo) => {
     if (!todo) {
       return res.status(404).send();
@@ -115,38 +117,34 @@ app.patch('/todos/:id', authenticate, (req, res) => {
 })
 
 
-  app.post('/users', (req, res) => {
-    var body = _.pick(req.body, ['email', 'password']);
-    var user = new User(body); // sino han metido el email, se pondrá aqui
+  app.post('/users', async (req, res) => {
+    try {
+      const body = _.pick(req.body, ['email', 'password']);
+      const user = new User(body); // sino han metido el email, se pondrá aqui
+      await user.save();
+      const token = await user.generateAuthToken();
 
-    user.save().then((user) => {
-      return user.generateAuthToken();
-      // res.send({user});
-    }).then((token) => {
-      // me encadeno a la promise devuelta en user model
       res.header('x-auth', token).send(user);
-    }).catch((e) => {
+    } catch (e) {
       res.status(400).send(e);
-    });
+    }
   });
 
   // POST /users/login {email, password}
   // coger el email y password del body
   // comprobar el password, recuerda que lo tenemos hasheado en DDBB
   // send 200 with email and password
-  app.post('/users/login', (req, res) => {
-    var body = _.pick(req.body, ['email', 'password']); // siempre es una buena practica
-    var {email, password} = body;
+  app.post('/users/login', async (req, res) => {
+    try {
+      const body = _.pick(req.body, ['email', 'password']); // siempre es una buena practica
+      var {email, password} = body;
+      const user = await User.findByCredentials(email, password);
+      const token = await user.generateAuthToken();
 
-    User.findByCredentials(email, password).then((user) => {
-      // res.send(user);
-      // return para mantener la cadena de promise viva, asi que si se produce un error ira al catch
-      return user.generateAuthToken().then((token) => {
-        res.header('x-auth', token).send(user);
-      });
-    }).catch((e) => {
+      res.header('x-auth', token).send(user);
+    } catch (e) {
       res.status(400).send();
-    });
+    }
   });
 
 
@@ -161,14 +159,13 @@ app.patch('/todos/:id', authenticate, (req, res) => {
 
 // la ruta es privada, requiere que estes autenticado
 // y en el middleware ponemos la token en la request, recuerda
-app.delete('/users/me/token', authenticate, (req, res) => {
-  // vamos a llamar a un instance methos del modelo que tenemos que crear
-  // el uso será el siguiente
-  req.user.removeToken(req.token).then(() => {
+app.delete('/users/me/token', authenticate, async (req, res) => {
+  try {
+    await req.user.removeToken(req.token);
     res.status(200).send();
-  }, () => {
+  } catch (e) {
     res.status(400).send();
-  })
+  }
 });
 
 

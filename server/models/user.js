@@ -14,7 +14,8 @@ var UserSchema = new mongoose.Schema({
     validate: {
       // en vez de pasar una arrow function, simplificamos porque solo hay una linea
       validator: validator.isEmail,
-      message: '{VALUE} is not a valid email'
+      message: '{VALUE} is not a valid email',
+      isAsync: false
     }
   },
   password: {
@@ -115,7 +116,6 @@ UserSchema.statics.findByCredentials = function (email, password) {
         if (res) {
           resolve(user);
         } else {
-          console.log('Bad password');
           reject();
         }
       });
